@@ -1,0 +1,19 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{ var tdsObj = Model.TdsObject;}
+@if (tdsObj.LastDate() == 0)
+{
+    <h1>登録されたデータがありません。</h1>
+}
+else
+{
+    <div id="chart_div" style="height:inherit"></div>
+
+    <script type="text/javascript" on-content-loaded="true">
+        ViewTable({
+            url: '@Model.Url',
+            elementId: 'chart_div'
+        });
+    </script>
+}

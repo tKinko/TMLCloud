@@ -1,0 +1,95 @@
+﻿
+@{
+    ViewData["Title"] = "Harvest";
+}
+
+<h2>Harvest</h2>
+
+
+<div id="base">
+    <button type="button" onclick="DataGet()" id="clearbtn" class="btn-default btn-sm">データの取得</button>
+    <button type="button" onclick="DataClear()" id="clearbtn" class="btn-default btn-sm">データの消去</button>
+    <div class="container-fluid" style="padding-left:0px;padding-right:0px">
+        <div class="row">
+            <div class="col-xs-12">
+                <div id="datalist">
+                    <p class=" text-warning">Retrieving</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var preData = {};
+        timout_id = null;
+        loop();
+
+        function loop() {
+            $.getJSON('Harvest/GetCurrentUpdate')
+                .done(function (data) {
+                    UpdateViews(data);
+                })
+                .fail(function (xhr, status, error) {
+                    window.alert('error:' + error);
+                })
+                .always(function () {
+                    timout_id = setTimeout(function () { loop(); }, 5000);
+                });
+        }
+        function DataGet() {
+            CommentDatalist("Retrieving")
+            clearTimeout(timout_id);
+            $.post('Harvest/GetHarvest')
+                .done(function (data) {
+                    loop();
+                })
+                .fail(function (xhr, status, error) {
+                    window.alert('error:' + error);
+                })
+                .always(function () {
+                    timout_id = setTimeout(function () { loop(); }, 5000);
+             });
+        }
+
+        function UpdateViews(data) {
+            clearTimeout(timout_id);
+            if (preData.lastDate !== data.lastDate) {
+                $("#datalist").load("Harvest/UpdateDataTable");
+            }
+            preData = data;
+        }
+
+        function DataClear() {
+            window.alert('消去に1分程度かかります。');
+            CommentDatalist("Deleting")
+            clearTimeout(timout_id);
+            document.getElementById('clearbtn').disabled = "true";
+            document.getElementById('clearbtn').style.cursor = 'wait';
+            document.getElementById('datalist').style.cursor = 'wait';
+            document.getElementById('base').style.cursor = 'wait';
+            $.post('Harvest/DataClear')
+                .done(function () {
+                })
+                .fail(function (xhr, status, error) {
+                    window.alert('error:' + error);
+                })
+                .always(function () {
+                    document.getElementById('base').style.cursor = 'auto';
+                    document.getElementById('clearbtn').style.cursor = 'auto';
+                    document.getElementById('datalist').style.cursor = 'auto';
+                    document.getElementById('clearbtn').disabled = "";
+                    timout_id = setTimeout(function () { loop(); }, 5000);
+                });
+        }
+        function CommentDatalist(comment) {
+            var list = document.getElementById('datalist');
+            if (list !== null)
+                list.innerHTML = comment;
+        }
+    </script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="~/js/googlechart.js"></script>
+}
+

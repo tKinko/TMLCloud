@@ -1,0 +1,34 @@
+﻿/*社標のフォントに合わせた*/
+.copyright {
+    font-family: Arial;
+    /*text-align:right;*/
+}
+/*.lefttext{
+    text-align:left;
+    float:left;
+}*/
+
+/*日本語の上部が欠けるのを防止
+    iPhoneでコントロールを選択時に自動的にズームするのを防止
+    font-sizeを16px以上にするとズームしない
+*/
+.form-control {
+    /*display: block;
+    width: 100%;
+    height: 34px;*/
+    padding-top: 4px;
+    padding-bottom: 2px;
+    font-size: 16px; /*個別のinputコントロールにも指定が必要*/
+    /*line-height: 1.42857143;
+    color: #555;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+    -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;*/
+}
+
