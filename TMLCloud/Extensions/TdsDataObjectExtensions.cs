@@ -113,6 +113,23 @@ namespace TdsDataObjectExtensions
                 UpdateLastDate();
             }
         }
+        public long ErrorDate()
+        {
+            TdsStatus status = tableManager.GetTdsStatus("Error");
+            if (status == null)
+                return 0;
+
+            return status.status;
+        }
+         protected void UpdateErrorDate()
+        {
+            tableManager.SetTdsStatus("Error", DateTime.UtcNow.Ticks);
+        }
+       public void SetErrerMessage(string data, string mess)
+        {
+            tableManager.SetErrMessgae(data, mess);
+            UpdateErrorDate();
+        }
         private void SetEntityData(dynamic data)
         {
             Console.WriteLine("SetEntityData start");
@@ -145,9 +162,17 @@ namespace TdsDataObjectExtensions
 
             return dataTable;
         }
-        public void GetStatus(_BaseModel baseModel)
+         public GoogleVisualizationDataTable CreatErrorTable()
+        {
+            GoogleVisualizationDataTable dataTable;
+            tableManager.CreatErrorTable(out dataTable);
+
+            return dataTable;
+        }
+       public void GetStatus(_BaseModel baseModel)
         {
             baseModel.LastDate = LastDate();
+            baseModel.ErrorDate = ErrorDate();
         }
         static public string GetFormatTds2Google(TDS7130_FORMAT format)
         {
@@ -306,6 +331,42 @@ namespace TdsDataObjectExtensions
                 while (token != null);
                 Thread.Sleep(50000);
             }
+            public void SetErrMessgae(string data, string mess)
+            {
+                CloudTable _table0 = GetTable(0);
+
+                var key = DateTimeOffset.Now.UtcDateTime.ToString("DyyyyMMddHHmmssfff");
+                DynamicTableEntity tdsPropEntity = new DynamicTableEntity("Error", key);
+                tdsPropEntity.Properties.Add("N001", EntityProperty.GeneratePropertyForString(data));
+                tdsPropEntity.Properties.Add("N002", EntityProperty.GeneratePropertyForString(mess));
+                _table0.ExecuteAsync(TableOperation.InsertOrMerge(tdsPropEntity)).Wait();
+            }
+            public void CreatErrorTable(out GoogleVisualizationDataTable dataTable)
+            {
+                dataTable = new GoogleVisualizationDataTable();
+                dataTable.AddColumn("data", "string");
+                dataTable.AddColumn("message", "string");
+                GetErrors(dataTable);
+            }
+            protected void GetErrors(GoogleVisualizationDataTable dataTable)
+            {
+                CloudTable _table0 = GetTable(0);
+                TableQuery<DynamicTableEntity> tableQuery = new TableQuery<DynamicTableEntity>().Where(
+                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, "Error"));
+
+                var maxCols = dataTable.cols.Count;
+                TableContinuationToken continuationToken = null;
+                TableQuerySegment<DynamicTableEntity> tableQueryResult = _table0.ExecuteQuerySegmentedAsync(tableQuery, continuationToken).Result;
+
+                foreach (DynamicTableEntity tableEntity in tableQueryResult.Results)
+                {
+                    var values = new List<GoogleVisualizationDataTable.Row.RowValue>();
+                    values.Add(new GoogleVisualizationDataTable.Row.RowValue(tableEntity.Properties["N001"].StringValue, TDS7130_FORMAT.kDefFmtFlg));
+                    values.Add(new GoogleVisualizationDataTable.Row.RowValue(tableEntity.Properties["N002"].StringValue, TDS7130_FORMAT.kDefFmtFlg));
+                    dataTable.AddRow(values);
+                }
+            }
+
             public string DataKey { get; set; }
             public TdsTableEntityManager<string> NameEntityManager { get; protected set; }
             public TdsTableEntityManager<double> DataEntityManager { get; protected set; }

@@ -44,5 +44,18 @@ namespace TMLCloud.Controllers
 
             return Ok();
         }
+        public IActionResult UpdateErrTable()
+        {
+            FunnelDataListModel model = new FunnelDataListModel();
+            model.Url = "Funnel/ErrorTable";
+
+            return PartialView("_ErrorTablePartial", model);
+        }
+        public JsonResult ErrorTable()
+        {
+            FunnelDataListModel listModel = new FunnelDataListModel();
+
+            return Json(listModel.ErrorTable());
+        }
     }
 }

@@ -16,6 +16,7 @@ namespace TMLCloud.Models
         }
 
         public long LastDate { get;  set; }
+        public long ErrorDate { get;  set; }
 
         public void UpdateStatus()
         {

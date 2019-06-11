@@ -29,6 +29,13 @@ namespace TMLCloud.Controllers
 
             return PartialView("_DataTablePartial", model);
         }
+        public IActionResult UpdateErrTable()
+        {
+            BeamDataListModel model = new BeamDataListModel();
+            model.Url = "Beam/ErrorTable";
+
+            return PartialView("_ErrorTablePartial", model);
+        }
         public JsonResult DataTable()
         {
             BeamDataListModel listModel = new BeamDataListModel();
@@ -36,6 +43,12 @@ namespace TMLCloud.Controllers
             //model.ListTop = listModel.TdsObject.LastStep();
 
             return Json(listModel.DataTable(model));
+        }
+        public JsonResult ErrorTable()
+        {
+            BeamDataListModel listModel = new BeamDataListModel();
+
+            return Json(listModel.ErrorTable());
         }
 
         public IActionResult DataClear()

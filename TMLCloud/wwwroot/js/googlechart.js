@@ -98,9 +98,10 @@ function ViewTable(option) {
                 height: '100%',
                 sort: 'disable',
                 page: 'enable',
-                pageSize: 50,
+                pageSize: option.pageSize,
                 showRowNumber: true,
-                frozenColumns: 1
+                frozenColumns: 1,
+                startPage: (data.rows.length - 1) / option.pageSize + 1
             };
             var chart = new google.visualization.Table(document.getElementById(option.elementId));
             chart.draw(dataTable, options);

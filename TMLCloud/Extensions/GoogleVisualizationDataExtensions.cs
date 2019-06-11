@@ -58,9 +58,11 @@ namespace GoogleVisualizationDataExtensions
                             return objValue;
 
                         if (format == TdsDataObject.TDS7130_FORMAT.kDefFmtFlg)
+                        {
                             return objValue;
+                        }
 
-                       if (TdsDataObject.IsDateTimeFormat(format) == true)
+                        if (TdsDataObject.IsDateTimeFormat(format) == true)
                         {
                             //return objValue;
                             return ((DateTimeOffset)objValue).ToString(TdsDataObject.GetFormatTds2Google(TdsDataObject.TDS7130_FORMAT.kFmtDate_UTC));
@@ -81,9 +83,11 @@ namespace GoogleVisualizationDataExtensions
                             return "-------";
 
                         if (format == TdsDataObject.TDS7130_FORMAT.kDefFmtFlg)
+                        {
                             return objValue;
-                        
-                        if(TdsDataObject.IsDateTimeFormat(format) == true)
+                        }
+
+                        if (TdsDataObject.IsDateTimeFormat(format) == true)
                         {
                             return ((DateTimeOffset)objValue).ToString(TdsDataObject.GetFormatTds2Google(format));
                         }

@@ -37,6 +37,10 @@ namespace TMLCloud.Models
         {
             return TdsObject.CreatTdsDataTable(model.ListTop);
         }
+        public GoogleVisualizationDataTable ErrorTable()
+        {
+            return TdsObject.CreatErrorTable();
+        }
     }
     public class FunnelDataListModel : DataTableModel
     {

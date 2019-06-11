@@ -140,53 +140,58 @@ namespace SoracomEventsHub
 
                     dynamic bodyobject = JsonConvert.DeserializeObject(body, serializerSettings);
 
-                    string container;
-
-                    if (bodyobject.payload != null)
+                    string container = "";
+                    try
                     {
-                        lock (beamDirect)
+                        if (bodyobject.payload != null)
                         {
-                            dataobjects = beamDirect.ConvertData(bodyobject.payload.Value);
+                            container = "Beam";
+                            lock (beamDirect)
+                            {
+                                dataobjects = beamDirect.ConvertData(bodyobject.payload.Value);
+                            }
+                            curdatas = beamdatas;
                         }
-                        container = "Beam";
-                        curdatas = beamdatas;
-                    }
-                    else
-                    if (bodyobject.payloads == null)
-                    {
-                        dataobjects.Add(bodyobject);
-                        container = "Beam";
-                        curdatas = beamdatas;
-                    }
-                    else
-                    {
-                        dataobjects.Add(bodyobject.payloads);
-                        container = "Funnel";
-                        curdatas = funneldatas;
-                    }
-
-                    foreach (var dataobject in dataobjects)
-                    {
-                        if (dataobject.comb == null)
+                        else if (bodyobject.payloads == null)
                         {
-                            curdatas.Add(dataobject);
+                            dataobjects.Add(bodyobject);
+                            container = "Beam";
+                            curdatas = beamdatas;
                         }
                         else
                         {
-                            foreach (var comb in dataobject.comb)
+                            container = "Funnel";
+                            dataobjects.Add(bodyobject.payloads);
+                            curdatas = funneldatas;
+                        }
+                        foreach (var dataobject in dataobjects)
+                        {
+                            if (dataobject.comb == null)
                             {
-                                curdatas.Add(comb);
+                                curdatas.Add(dataobject);
+                            }
+                            else
+                            {
+                                foreach (var comb in dataobject.comb)
+                                {
+                                    curdatas.Add(comb);
+                                }
                             }
                         }
+                        Console.WriteLine($"{container} received. ");
+
+
+                        //foreach (dynamic item in dataobject)
+                        //{
+                        //    Console.WriteLine($"{item.Name}: {item.Value}");
+                        //}
+                    }catch(Exception e)
+                    {
+                        if (container == "Beam")
+                            beamDataObject.SetErrerMessage(e.Data["org"].ToString(), e.Message);
+                        if (container == "Funnel")
+                            funnelDataObject.SetErrerMessage(e.Data["org"].ToString(), e.Message);
                     }
-                    Console.WriteLine($"{container} received. ");
-
-
-                    //foreach (dynamic item in dataobject)
-                    //{
-                    //    Console.WriteLine($"{item.Name}: {item.Value}");
-                    //}
-
                 }
 
                 funnelDataObject.UpdateData(funneldatas);
@@ -202,12 +207,16 @@ namespace SoracomEventsHub
         protected string CombData { get; set; }
         protected Encoding enc = Encoding.GetEncoding("UTF-8");
         protected JsonSerializerSettings serializerSettings = new JsonSerializerSettings() { DateParseHandling = DateParseHandling.DateTimeOffset };
-
+        protected bool ArrayData { get; set; }
+        protected int startIndex;
         public IList<dynamic> ConvertData(string payloadValue)
         {
-            
+
             int pos;
             IList<dynamic> bodyobjects = new List<dynamic>();
+
+            try
+            {
 
             string s = enc.GetString(Convert.FromBase64String(payloadValue));
 
@@ -217,7 +226,11 @@ namespace SoracomEventsHub
                 if (pos == -1)
                     return bodyobjects;
 
+                startIndex = 0;
                 CombData = s.Substring(pos);
+                pos = s.IndexOf('[');
+                if (pos > -1)
+                    ArrayData = true;
             }
             else
             {
@@ -226,12 +239,25 @@ namespace SoracomEventsHub
 
             do
             {
-                pos = CombData.IndexOf('}') + 1;
+                if(ArrayData == true)
+                {
+                    pos = CombData.IndexOf(']');
+                    if (pos == -1)
+                        break;
+                    startIndex = pos;
+                }
+                pos = CombData.IndexOf('}', startIndex) + 1;
                 if (pos == 0)
                     break;
 
                 dynamic bodyobject = JsonConvert.DeserializeObject(CombData.Substring(0, pos), serializerSettings);
-                if (bodyobject.date != null)
+                if(ArrayData == true && bodyobject.comb != null)
+                {
+                    bodyobjects.Add(bodyobject);
+                    ArrayData = false;
+                    startIndex = 0;
+                }
+                else if (bodyobject.date != null)
                 {
                     bodyobjects.Add(bodyobject);
                 }
@@ -245,7 +271,12 @@ namespace SoracomEventsHub
                         break;
                     }
                     else
+                    {
                         CombData = CombData.Substring(pos);
+                        pos = s.IndexOf('[');
+                        if (pos > -1)
+                            ArrayData = true;
+                    }
                 }
                 else
                 {
@@ -253,6 +284,15 @@ namespace SoracomEventsHub
                     break;
                 }
             } while (true);
+            }
+            catch(Exception e)
+            {
+                e.Data["org"] = CombData;
+                CombData = "";
+                ArrayData = false;
+                startIndex = 0;
+                throw;
+            }
 
             return bodyobjects;
         }

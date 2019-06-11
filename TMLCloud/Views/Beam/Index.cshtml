@@ -15,6 +15,14 @@
                 </div>
             </div>
         </div>
+        <div class="row">
+            <h4>Error</h4>
+            <div class="col-xs-12">
+                <div id="errlist">
+                    <p class=" text-warning">Retrieving</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -41,6 +49,9 @@
             if (preData.lastDate !== data.lastDate) {
                 $("#datalist").load("Beam/UpdateDataTable");
             }
+            if (preData.errorDate !== data.errorDate) {
+                $("#errlist").load("Beam/UpdateErrTable");
+            }
             preData = data;
         }
 
@@ -51,6 +62,7 @@
             document.getElementById('clearbtn').disabled  = "true";
             document.getElementById('clearbtn').style.cursor = 'wait';
             document.getElementById('datalist').style.cursor = 'wait';
+            document.getElementById('errlist').style.cursor = 'wait';
             document.getElementById('base').style.cursor = 'wait';
             $.post('Beam/DataClear')
                 .done(function () {
@@ -59,9 +71,11 @@
                     window.alert('error:' + error);
                 })
                 .always(function () {
+                    preData = {};
                     document.getElementById('base').style.cursor = 'auto';
                     document.getElementById('clearbtn').style.cursor = 'auto';
                     document.getElementById('datalist').style.cursor = 'auto';
+                    document.getElementById('errlist').style.cursor = 'auto';
                     document.getElementById('clearbtn').disabled = "";
                     timout_id = setTimeout(function () { loop(); }, 5000);
                 });
@@ -70,7 +84,10 @@
             var list = document.getElementById('datalist');
             if (list !== null)
                 list.innerHTML = comment;
-        }
+            list = document.getElementById('errlist');
+            if (list !== null)
+                list.innerHTML = comment;
+       }
     </script>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="~/js/googlechart.js"></script>
