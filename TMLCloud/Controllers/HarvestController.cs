@@ -51,5 +51,18 @@ namespace TMLCloud.Controllers
 
             return Ok();
         }
+        public IActionResult UpdateErrTable()
+        {
+            HarvestDataListModel model = new HarvestDataListModel();
+            model.Url = "Harvest/ErrorTable";
+
+            return PartialView("_ErrorTablePartial", model);
+        }
+        public JsonResult ErrorTable()
+        {
+            HarvestDataListModel listModel = new HarvestDataListModel();
+
+            return Json(listModel.ErrorTable());
+        }
     }
 }

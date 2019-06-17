@@ -23,6 +23,7 @@ namespace TMLCloud.Models
             IList<Subscriber> subscribers = new List<Subscriber>();
 
             SoracomHarvest soracom = new SoracomHarvest();
+            soracom.TdsObject = TdsObject;
             bool ret = soracom.GetHarvestData(subscribers);
 
             foreach (Subscriber subscriber in subscribers)
@@ -46,6 +47,7 @@ namespace TMLCloud.Models
     }
     public class SoracomHarvest
     {
+        public TdsDataObject TdsObject { get; set; }
         protected SoracomDirectData directData;
         protected string apiKey { get; set; }
         protected string apiToken { get; set; }
@@ -132,22 +134,29 @@ namespace TMLCloud.Models
             {
                 var bodybject = JsonConvert.DeserializeObject(item.content.Value, serializerSettings);
 
-                if (bodybject.payload != null)
+                try
                 {
-                    List<dynamic> dataobjects = directData.ConvertData(bodybject.payload.Value);
-
-                    if (dataobjects.Count > 0)
-                        subscriber.data.AddRange(dataobjects);
-
-                }
-                else
-                {
-                    if (bodybject.date == null)
+                    if (bodybject.payload != null)
                     {
-                        var baseDt = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
-                        bodybject.date = new DateTimeOffset(item.time.Value * 10000 + baseDt.Ticks, TimeSpan.Zero);
+                        List<dynamic> dataobjects = directData.ConvertData(bodybject.payload.Value);
+
+                        if (dataobjects.Count > 0)
+                            subscriber.data.AddRange(dataobjects);
+
                     }
-                    subscriber.data.Add(bodybject);
+                    else
+                    {
+                        if (bodybject.date == null)
+                        {
+                            var baseDt = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                            bodybject.date = new DateTimeOffset(item.time.Value * 10000 + baseDt.Ticks, TimeSpan.Zero);
+                        }
+                        subscriber.data.Add(bodybject);
+                    }
+                }
+                catch (Exception e)
+                {
+                    TdsObject.SetErrerMessage(e.Data["org"].ToString(), e.Message);
                 }
             }
 

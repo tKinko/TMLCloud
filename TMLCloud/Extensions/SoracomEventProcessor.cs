@@ -13,7 +13,7 @@ namespace SoracomEventsHub
 {
     class SoracomEvent : IDisposable
     {
-        private const string EventHubConnectionString = "Endpoint=sb://funnel.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=rIPrxxcrG1KdLouSrk3d4Ev68ZeMLPi0dVE27TzQoJA=";
+        private const string EventHubConnectionString = "Endpoint=sb://funnel.servicebus.windows.net/;SharedAccessKeyName=RootManagerSharedAccessKey;SharedAccessKey=8Lm0dp6ICRFzg0FEFOiZvbqz7gFguNRx8TDBUtNOdS4=;EntityPath=sensor0";
         private const string EventHubName = "sensor0";
         private const string StorageContainerName = "funnel";
         private const string StorageAccountName = "soracomstrage";
@@ -126,77 +126,76 @@ namespace SoracomEventsHub
             {
                 JsonSerializerSettings serializerSettings = new JsonSerializerSettings() { DateParseHandling = DateParseHandling.DateTimeOffset };
 
-                List<dynamic> funneldatas = new List<dynamic>();
-                List<dynamic> beamdatas = new List<dynamic>();
-                List<dynamic> curdatas;
-                List<dynamic> dataobjects = new List<dynamic>();
-                foreach (var eventData in messages)
+                lock (beamDirect)
                 {
-                    //Console.WriteLine($"SequenceNumber {eventData.Properties["SequenceNumber"]}");
-
-                    dataobjects.Clear();
-
-                    var body = Encoding.UTF8.GetString(eventData.Body.Array, eventData.Body.Offset, eventData.Body.Count);
-
-                    dynamic bodyobject = JsonConvert.DeserializeObject(body, serializerSettings);
-
-                    string container = "";
-                    try
+                    List<dynamic> funneldatas = new List<dynamic>();
+                    List<dynamic> beamdatas = new List<dynamic>();
+                    List<dynamic> curdatas;
+                    List<dynamic> dataobjects = new List<dynamic>();
+                    foreach (var eventData in messages)
                     {
-                        if (bodyobject.payload != null)
+                        //Console.WriteLine($"SequenceNumber {eventData.Properties["SequenceNumber"]}");
+
+                        dataobjects.Clear();
+
+                        var body = Encoding.UTF8.GetString(eventData.Body.Array, eventData.Body.Offset, eventData.Body.Count);
+
+                        dynamic bodyobject = JsonConvert.DeserializeObject(body, serializerSettings);
+
+                        string container = "";
+                        try
                         {
-                            container = "Beam";
-                            lock (beamDirect)
+                            if (bodyobject.payload != null)
                             {
+                                container = "Beam";
                                 dataobjects = beamDirect.ConvertData(bodyobject.payload.Value);
+                                curdatas = beamdatas;
                             }
-                            curdatas = beamdatas;
-                        }
-                        else if (bodyobject.payloads == null)
-                        {
-                            dataobjects.Add(bodyobject);
-                            container = "Beam";
-                            curdatas = beamdatas;
-                        }
-                        else
-                        {
-                            container = "Funnel";
-                            dataobjects.Add(bodyobject.payloads);
-                            curdatas = funneldatas;
-                        }
-                        foreach (var dataobject in dataobjects)
-                        {
-                            if (dataobject.comb == null)
+                            else if (bodyobject.payloads == null)
                             {
-                                curdatas.Add(dataobject);
+                                dataobjects.Add(bodyobject);
+                                container = "Beam";
+                                curdatas = beamdatas;
                             }
                             else
                             {
-                                foreach (var comb in dataobject.comb)
+                                container = "Funnel";
+                                dataobjects.Add(bodyobject.payloads);
+                                curdatas = funneldatas;
+                            }
+                            foreach (var dataobject in dataobjects)
+                            {
+                                if (dataobject.comb == null)
                                 {
-                                    curdatas.Add(comb);
+                                    curdatas.Add(dataobject);
+                                }
+                                else
+                                {
+                                    foreach (var comb in dataobject.comb)
+                                    {
+                                        curdatas.Add(comb);
+                                    }
                                 }
                             }
+                            Console.WriteLine($"{container} received. ");
+
+
+                            //foreach (dynamic item in dataobject)
+                            //{
+                            //    Console.WriteLine($"{item.Name}: {item.Value}");
+                            //}
                         }
-                        Console.WriteLine($"{container} received. ");
-
-
-                        //foreach (dynamic item in dataobject)
-                        //{
-                        //    Console.WriteLine($"{item.Name}: {item.Value}");
-                        //}
-                    }catch(Exception e)
-                    {
-                        if (container == "Beam")
-                            beamDataObject.SetErrerMessage(e.Data["org"].ToString(), e.Message);
-                        if (container == "Funnel")
-                            funnelDataObject.SetErrerMessage(e.Data["org"].ToString(), e.Message);
+                        catch (Exception e)
+                        {
+                            if (container == "Beam")
+                                beamDataObject.SetErrerMessage(e.Data["org"].ToString(), e.Message);
+                            if (container == "Funnel")
+                                funnelDataObject.SetErrerMessage(e.Data["org"].ToString(), e.Message);
+                        }
                     }
+                    funnelDataObject.UpdateData(funneldatas);
+                    beamDataObject.UpdateData(beamdatas);
                 }
-
-                funnelDataObject.UpdateData(funneldatas);
-                beamDataObject.UpdateData(beamdatas);
-
                 return context.CheckpointAsync();
             }
         }
@@ -218,74 +217,80 @@ namespace SoracomEventsHub
             try
             {
 
-            string s = enc.GetString(Convert.FromBase64String(payloadValue));
+                string s = enc.GetString(Convert.FromBase64String(payloadValue));
 
-            if (CombData == "")
-            {
-                pos = s.IndexOf('{');
-                if (pos == -1)
-                    return bodyobjects;
-
-                startIndex = 0;
-                CombData = s.Substring(pos);
-                pos = s.IndexOf('[');
-                if (pos > -1)
-                    ArrayData = true;
-            }
-            else
-            {
-                CombData += s;
-            }
-
-            do
-            {
-                if(ArrayData == true)
+                if (CombData == "")
                 {
-                    pos = CombData.IndexOf(']');
+                    pos = s.IndexOf('{');
                     if (pos == -1)
-                        break;
-                    startIndex = pos;
-                }
-                pos = CombData.IndexOf('}', startIndex) + 1;
-                if (pos == 0)
-                    break;
+                        return bodyobjects;
 
-                dynamic bodyobject = JsonConvert.DeserializeObject(CombData.Substring(0, pos), serializerSettings);
-                if(ArrayData == true && bodyobject.comb != null)
-                {
-                    bodyobjects.Add(bodyobject);
-                    ArrayData = false;
                     startIndex = 0;
+                    CombData = s.Substring(pos);
+                    pos = s.IndexOf('[');
+                    if (pos > -1)
+                        ArrayData = true;
                 }
-                else if (bodyobject.date != null)
+                else
                 {
-                    bodyobjects.Add(bodyobject);
+                    CombData += s;
                 }
 
-                if (CombData.Length > pos)
+                do
                 {
-                    pos = CombData.IndexOf('{', pos - 1);
-                    if (pos == -1)
+                    if (ArrayData == true)
+                    {
+                        pos = CombData.IndexOf(']');
+                        if (pos == -1)
+                            break;
+                        startIndex = pos;
+                    }
+                    pos = CombData.IndexOf('}', startIndex) + 1;
+                    if (pos == 0)
+                        break;
+
+                    s = CombData.Substring(0, pos);
+                    dynamic bodyobject = JsonConvert.DeserializeObject(s, serializerSettings);
+                    if (ArrayData == true && bodyobject.comb != null)
+                    {
+                        foreach (var comb in bodyobject.comb)
+                        {
+                            comb["body"] = s;
+                        }
+                        bodyobjects.Add(bodyobject);
+                        ArrayData = false;
+                        startIndex = 0;
+                    }
+                    else if (bodyobject.date != null)
+                    {
+                        bodyobject["body"] = s;
+                        bodyobjects.Add(bodyobject);
+                    }
+
+                    if (CombData.Length > pos)
+                    {
+                        pos = CombData.IndexOf('{', pos - 1);
+                        if (pos == -1)
+                        {
+                            CombData = "";
+                            break;
+                        }
+                        else
+                        {
+                            CombData = CombData.Substring(pos);
+                            pos = s.IndexOf('[');
+                            if (pos > -1)
+                                ArrayData = true;
+                        }
+                    }
+                    else
                     {
                         CombData = "";
                         break;
                     }
-                    else
-                    {
-                        CombData = CombData.Substring(pos);
-                        pos = s.IndexOf('[');
-                        if (pos > -1)
-                            ArrayData = true;
-                    }
-                }
-                else
-                {
-                    CombData = "";
-                    break;
-                }
-            } while (true);
+                } while (true);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 e.Data["org"] = CombData;
                 CombData = "";

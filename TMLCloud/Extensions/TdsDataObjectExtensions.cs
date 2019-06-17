@@ -137,6 +137,7 @@ namespace TdsDataObjectExtensions
             tableManager.NameEntityManager.ResetEntity();
 
             DateTimeOffset dateTime = DateTimeOffset.Now;
+            string body = "";
             foreach (dynamic item in data)
             {
                 if (item.Name == "date")
@@ -149,10 +150,15 @@ namespace TdsDataObjectExtensions
             {
                 if (item.Name == "date")
                     continue;
+                if (item.Name == "body")
+                {
+                    body = item.Value;
+                    continue;
+                }
                 tableManager.SetEntityItem(dateTime, item);
             }
 
-            tableManager.InsertOrMargeDataTableEntity();
+            tableManager.InsertOrMargeDataTableEntity(body);
             Console.WriteLine("SetEntityData end\n");
         }
         public GoogleVisualizationDataTable CreatTdsDataTable(int lastStep = -1, int count = 50)
@@ -417,11 +423,11 @@ namespace TdsDataObjectExtensions
                 }
             }
 
-            public void InsertOrMargeDataTableEntity()
+            public void InsertOrMargeDataTableEntity(string body)
             {
                 NameEntityManager.InsertOrMargeDataTableEntity();
                 DataEntityManager.InsertOrMargeDataTableEntity();
-                SetTdsDataStatus();
+                SetTdsDataStatus(body);
             }
             public TdsStatus GetTdsStatus(string key)
             {
@@ -452,7 +458,7 @@ namespace TdsDataObjectExtensions
                 tdsPropEntity.Properties.Add("N001", EntityProperty.GeneratePropertyForLong( value));
                 _table0.ExecuteAsync(TableOperation.InsertOrMerge(tdsPropEntity)).Wait();
             }
-            public void SetTdsDataStatus()
+            public void SetTdsDataStatus(string body)
             {
                 CloudTable _table0 = GetTable(0);
                 IList<int> useTabels = DataEntityManager.UseTabels();
@@ -460,6 +466,10 @@ namespace TdsDataObjectExtensions
                 foreach (int i in useTabels)
                 {
                     tdsPropEntity.Properties.Add(string.Format("N{0,3:D3}", i), EntityProperty.GeneratePropertyForInt(i));
+                }
+                if(body != "")
+                {
+                    tdsPropEntity.Properties.Add("Body", EntityProperty.GeneratePropertyForString(body));
                 }
                 _table0.ExecuteAsync(TableOperation.InsertOrMerge(tdsPropEntity)).Wait();
             }
@@ -537,6 +547,8 @@ namespace TdsDataObjectExtensions
                     List<int> list = new List<int>();
                     foreach (KeyValuePair<string, EntityProperty> pInfo in nameInfos)
                     {
+                        if (pInfo.Key == "Body")
+                            continue;
                         list.Add((int)pInfo.Value.Int32Value);
                     }
                     list.Sort();
@@ -550,7 +562,8 @@ namespace TdsDataObjectExtensions
                     {
                         CloudTable _table = GetTable(index);
                         TableResult tableResult = _table.ExecuteAsync(TableOperation.Retrieve<DynamicTableEntity>("Data", tableEntity.RowKey)).Result;
-                        AddDataTableRow(maxCols, values, (DynamicTableEntity)tableResult.Result, ref addDate, tableIndex);
+                        if(tableResult.Result != null)
+                            AddDataTableRow(maxCols, values, (DynamicTableEntity)tableResult.Result, ref addDate, tableIndex);
                     }
                     dataTable.AddRow(values);
                 }

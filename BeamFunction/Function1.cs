@@ -15,7 +15,7 @@ namespace BeamFunction
 {
     public static class Function1
     {
-        private const string EventHubConnectionString = "Endpoint=sb://funnel.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=rIPrxxcrG1KdLouSrk3d4Ev68ZeMLPi0dVE27TzQoJA=";
+        private const string EventHubConnectionString = "Endpoint=sb://funnel.servicebus.windows.net/;SharedAccessKeyName=RootManagerSharedAccessKey;SharedAccessKey=8Lm0dp6ICRFzg0FEFOiZvbqz7gFguNRx8TDBUtNOdS4=;EntityPath=sensor0";
         private const string EventHubName = "sensor0";
         private static ulong count = 0;
         //private const string AzureStorageConnectionString = "DefaultEndpointsProtocol=https;AccountName=soracomstrage;AccountKey=zeO+OMvvahK5m3kCb8o/efzUVjSexl8KwQOwixLWDH4InQ4YpDy7/TplhgKIzvy5XlKBGteMu6tCOYmzIP3D7g==;EndpointSuffix=core.windows.net";
